@@ -11,6 +11,9 @@ def handle_choice(choice):
         add_new()
     elif choice == '2':
         show_list()
+    elif choice == '3':
+        delete_item()
+
 
     elif choice == '6':
         show_list_items()
@@ -26,6 +29,7 @@ def add_new():
     # get new data, call method to add to DB
     venue_name = input('Enter name venue name: ')
     today = datetime.datetime.now()
+    today = str(today.month)+'/'+str(today.day)+'/'+str(today.year)
     make_table()
     # add_to_db(venue_name, today)
 
@@ -39,10 +43,16 @@ def add_new():
     with sqlite3.connect(db_name) as db:
         cur = db.cursor()
 
+        # cur.execute('INSERT INTO venue VALUES (?,?,?)', (None, venue_name, today))
+        # venue_id = cur.execute('SELECT venue_id FROM venue WHERE venue_name = ?',(venue_name,)).fetchone()
+        # venue_id = int(venue_id[0])
+        # cur.execute('INSERT INTO items_table VALUES (?,?,?,?,?)', (None, venue_id, item_name, item_price, sold_qty))
+
         cur.execute('INSERT INTO venue VALUES (?,?,?)', (None, venue_name, today))
         venue_id = cur.execute('SELECT venue_id FROM venue WHERE venue_name = ?',(venue_name,)).fetchone()
         venue_id = int(venue_id[0])
-        cur.execute('INSERT INTO items_table VALUES (?,?,?,?,?)', (None, venue_id, item_name, item_price, sold_qty))
+        cur.execute('INSERT INTO items_table VALUES (1,9,frisbie,30,4)')
+
 
 # def add_to_db(place_name, venue_date, item_name, item_price, sold_qty):
 
@@ -66,14 +76,15 @@ def add_new():
 def make_table():
     with sqlite3.connect(db_name) as db:
         cur = db.cursor()
-        cur.execute('CREATE TABLE IF NOT EXISTS venue (venue_id INTEGER PRIMARY KEY, venue_name TEXT, venue_date DATETIME)')
+        cur.execute('CREATE TABLE IF NOT EXISTS venue (venue_id INTEGER PRIMARY KEY, venue_name TEXT, venue_date datetimes)')
 
 
 def make_items_table():
     '''create table'''
     with sqlite3.connect(db_name) as db:
         cur = db.cursor()
-        cur.execute('''CREATE TABLE if NOT EXISTS items_table (itmeid INTEGER PRIMARY KEY,
+        cur.execute('PRAGMA foreign_keys = ON')
+        cur.execute('''CREATE TABLE if NOT EXISTS items_table (itemid INTEGER PRIMARY KEY,
         venueid INT REFERENCES venue(venue_id), item_name TEXT, item_price MONEY, sold_qty INT)''')
 
 
@@ -99,6 +110,19 @@ def show_list_items():
         for p in places:
             print(p)
 
+def delete_item():
+    item = input('Enter item_id ')
+    with sqlite3.connect(db_name) as db:
+        cur = db.cursor()
+        # items = cur.execute('SELECT * FROM items_table').fetchall()
+        items = cur.execute('SELECT* FROM items_table WHERE item_name == item')
+    # for item in items:
+    #     # print(item)
+    #     if itemid == items.itemid:
+    #         print(item)
+    #     #     items_table.remove(item)
+    #     # else:
+    #     #     print('item not found')
 
 
 def main():
