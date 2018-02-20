@@ -18,7 +18,11 @@ def handle_choice(choice):
     elif choice == '5':
         show_list_items()
     elif choice == '6':
-        add_sold_item()
+        add_sold_items()
+    elif choice == '7':
+        show_sold_list_items()
+    elif choice == '8':
+        total_items_sold_venues()
     elif choice == 'q':
         quit()
 
@@ -37,24 +41,24 @@ def make_items_table():
     '''create table'''
     with sqlite3.connect(db_name) as db:
         cur = db.cursor()
-        cur.execute('''CREATE TABLE if NOT EXISTS items_table (item_id INTEGER PRIMARY KEY,
-        venue_id INT REFERENCES venue(venue_id), item_name TEXT, item_price MONEY)''')
+        cur.execute('''CREATE TABLE if NOT EXISTS items (item_id INTEGER PRIMARY KEY,
+        venue_id INTEGER REFERENCES venue(venue_id), item_name TEXT)''')
 
 def make_sold_items_table():
     '''create table'''
     with sqlite3.connect(db_name) as db:
         cur = db.cursor()
-        cur.execute('''CREATE TABLE if NOT EXISTS sold_items_table (item_id INT REFERENCES items_table(item_id),
-        venue_id INT REFERENCES venue(venue_id), item_name TEXT, item_price MONEY, sold_qty INT)''')
+        cur.execute('''CREATE TABLE if NOT EXISTS sold_items (sold_item_id INTEGER PRIMARY KEY,\
+         item_id INT REFERENCES items_table(item_id), item_name TEXT, item_price MONEY, sold_qty INT)''')
 
 
 def add_new_venue():
-    # get new data, call method to add to DB
+    '''add a new venue'''
     venue_name = input('Enter name venue name: ')
     today = datetime.datetime.now()
     today = str(today.month)+'/'+str(today.day)+'/'+str(today.year)
     make_venue_table()
-    
+
     with sqlite3.connect(db_name) as db:
         cur = db.cursor()
         cur.execute('INSERT INTO venue VALUES (?, ?, ?)', (None, venue_name, venue_date))
@@ -74,21 +78,22 @@ def add_new_item():
     with sqlite3.connect(db_name) as db:
         cur = db.cursor()
         cur.execute('PRAGMA foreign_keys = ON')
-        cur.execute('INSERT INTO items_table VALUES (?,?,?,?)', (None, venue_id, item_name, item_price))
+        cur.execute('INSERT INTO items VALUES (?,?,?)', (None, venue_id, item_name))
 
 
-def add_sold_item():
+def add_sold_items():
+    '''add sold item to the table'''
     item_id = input('Enter item_id ')
-    venue_id = input('Enter venue_id ')
     item_name = input('Enter name of item: ')
     item_price = input('Enter price ')
     sold_qty = input('Enter quantity sold ')
 
+    make_sold_items_table()
 
     with sqlite3.connect(db_name) as db:
         cur = db.cursor()
-        # cur.execute('PRAGMA foreign_keys = ON')
-        cur.execute('INSERT INTO sold_items_table VALUES (?,?,?,?,?)', (item_id, venue_id, item_name, item_price, sold_qty))
+
+        cur.execute('INSERT INTO sold_items VALUES (?,?,?,?,?)', (None, item_id, item_name, item_price, sold_qty))
 
 
 def show_list_venues():
@@ -96,51 +101,67 @@ def show_list_venues():
     with sqlite3.connect(db_name) as db:
         cur = db.cursor()
         places = cur.execute('SELECT * FROM venue').fetchall()
-        # cur.execute('SELECT * FROM venue')
-        # obj = cur.fetchall()
-        # row_count = len(obj)
+
     if len(places) == 0:
         print ('* No items *')
     else:
-        for p in places:
-            print(p)
+        for row in places:
+            print(row)
 
-    # print ('venue_id     ',' venue_name      ','venue_date')
-    # print ('----------------------------------------------')
-    # while i < row_count:
-    #         # print( places[i][0], '' *(16 - len(places[i])), places[i][1], '' *(16 - len(places[i][1])), places[i][2], '' *(16 - len(places[i][2])))
-    #         print(obj[i][0], '' *(16 - len(obj[i][0])), obj[i][1], '' *(16 - len(obj[i][1])), obj[i][2], '' *(16 - len(obj[i][2])))
 
 
 
 def show_list_items():
     ''' Display a list of all items'''
-    with sqlite3.connect(db_name) as db:
-        cur = db.cursor()
-        places = cur.execute('SELECT * FROM items_table').fetchall()
+    try:
+        with sqlite3.connect(db_name) as db:
+            cur = db.cursor()
+            places = cur.execute('SELECT * FROM items').fetchall()
+    except Error as e:
+        print(e)
     if len(places) == 0:
         print ('* No items *')
     else:
-        for p in places:
-            print(p)
+        for row in places:
+            print(row)
+
+def show_sold_list_items():
+    ''' Display a list of all sold items'''
+    try:
+        with sqlite3.connect(db_name) as db:
+            cur = db.cursor()
+            places = cur.execute('SELECT * FROM sold_items').fetchall()
+    except Error as e:
+        print(e)
+    if len(places) == 0:
+        print ('* No items *')
+    else:
+        for row in places:
+            print(row)
 
 def delete_item():
     ''''Delete items from the items table'''
 
-    item = input('Enter item_id ')
+    id = input('Enter item_id ')
     with sqlite3.connect(db_name) as db:
         cur = db.cursor()
-        items = cur.execute('SELECT * FROM items_table').fetchall()
-        # items = cur.execute('SELECT* FROM items_table WHERE item_name == item')
-        # items_table.remove(item_id)
+
+        delete_statement = ('DELETE FROM items WHERE item_id = ?')
+        cur.execute(delete_statement, (id,))
+
+def total_items_sold_venues():
+    ''' Display item sold at a partiicular venue '''
+    item = input('Enter the item ')
+
+    with sqlite3.connect(db_name) as db:
+        cur = db.cursor()
+        sqlite_statement = ('''SELECT venue_name, item_name, SUM(sold_qty) FROM sold_items JOIN items ON sold_items.item_id = items.item_id
+                            JOIN venue ON venue.venue_id = items.venue_id WHERE sold_item.item_id = ?''')
+        itemsSold = cur.execute(sqlite_statement, (item_id,)).fetchall()
+        for i in itemsSold:
+            print(i[2], i[1], ' were sold at ', i[0])
 
 
-    for item_id in items:
-        if item_id == item:
-            # print(item_id)
-            items.remove(item_id)
-        else:
-            print('item not found')
 
 
 def main():
@@ -154,4 +175,7 @@ def main():
         handle_choice(choice)
 
 
-main()
+
+
+if __name__ == '__main__':
+    main()
